@@ -28,10 +28,27 @@
     - Waits for writer, reader and "UI" routines to finish its work
   - As result you'll get the OCI image as tar which is loaded into docker
 
-- It would be nice to:
-  - First compile it then try it out.
+<!-- 20221103 -->
+
+- Buildkit example `build-using-dockerfile`, take 2
+  - It does compile ✔️
+  - One **must** bear in mind the example is a *client*. In other words the environment must comply with: <!-- fun story, I burned must of my study time realizing this ^ -->
+    - A buildkit daemon
+    - A container runtime (runc, crun or containerd)
+  - I tried to let it connect to the buildkit container that `dagger` spun up for me weeks ago.
+    - It didn't work
+    - I used the the `BUILDKIT_HOST` env and the `--buildkit-addr` with no luck [ref](https://github.com/moby/buildkit/blob/master/examples/build-using-dockerfile/main.go#L37-L42)
+    - The buildkit URI used was `docker-container://<container-name>`
+      - ^ I blindy tried it since that is the way dagger does it [ref](https://github.com/dagger/dagger/blob/main/internal/buildkitd/buildkitd.go#L180)
+      - ^ I'm not sure if that should work or there's a "connection helper" within dagger's source I am overlooking
+      - ^ I bet there's one, since [gRPC Name Resolution](https://github.com/grpc/grpc/blob/master/doc/naming.md) does not mention the `docker-container` schema
+  - Thanks to `delv`, I was able to debug the code, then I understood it won't worked until I fulfill the aforementioned dependencies.
+    - ^ Although the 3 go-routines run within a `errgroup.Go` the main thread still hangs. I thought it would cancel the whole group as soon one of those failed.
+
+Next Goal: Try approaching the following:
+
+  - ~~Compile it `build-using-dockerfile` then~~ try it out
   - Try swaping `dockerfile.v0` with `gateway`
   - Look around why they couldn't use `containerd` from the get-go
 
-Next Goal: Tackle "nice" bullets above ^ the move on
 Next Goal: Compile and run buildkit's examples
